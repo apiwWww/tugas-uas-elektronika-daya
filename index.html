@@ -1,117 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dashboard Monitoring Realtime</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f5f7fa;
-      padding: 20px;
-      text-align: center;
-      color: #333;
-    }
-    h1 {
-      color: #007bff;
-      margin-bottom: 15px;
-    }
-    .dashboard {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 25px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      width: 250px;
-      min-height: 420px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .value {
-      font-size: 28px;
-      font-weight: bold;
-      color: #007bff;
-      margin: 10px 0;
-    }
-    .label {
-      font-size: 14px;
-      color: #6c757d;
-      margin-bottom: 15px;
-    }
-    .gauge {
-      width: 180px;
-      height: 90px;
-      margin: 10px auto 20px;
-    }
-    canvas {
-      margin-top: 10px;
-      height: 150px !important;
-    }
-  </style>
-</head>
-<body>
-
-<h1>Dashboard Monitoring Realtime (GitHub + Gauge)</h1>
-<div class="dashboard">
-  <div class="card">
-    <h2>Tegangan</h2>
-    <div class="value" id="voltageVal">0.00</div>
-    <div class="label">Volts (V)</div>
-    <svg class="gauge" viewBox="0 0 200 100">
-      <path d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke="#e9ecef" stroke-width="20"/>
-      <path id="arc-voltage" d="M20,100 A80,80 0 0,1 20,100" fill="none" stroke="#007bff" stroke-width="20" stroke-linecap="round"/>
-      <line id="needle-voltage" x1="100" y1="100" x2="100" y2="30" stroke="#dc3545" stroke-width="3" stroke-linecap="round" transform="rotate(0 100 100)" />
-      <circle cx="100" cy="100" r="6" fill="#333"/>
-    </svg>
-    <canvas id="voltageChart"></canvas>
-  </div>
-  <div class="card">
-    <h2>Arus</h2>
-    <div class="value" id="currentVal">0.00</div>
-    <div class="label">Amperes (A)</div>
-    <svg class="gauge" viewBox="0 0 200 100">
-      <path d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke="#e9ecef" stroke-width="20"/>
-      <path id="arc-current" d="M20,100 A80,80 0 0,1 20,100" fill="none" stroke="#28a745" stroke-width="20" stroke-linecap="round"/>
-      <line id="needle-current" x1="100" y1="100" x2="100" y2="30" stroke="#dc3545" stroke-width="3" stroke-linecap="round" transform="rotate(0 100 100)" />
-      <circle cx="100" cy="100" r="6" fill="#333"/>
-    </svg>
-    <canvas id="currentChart"></canvas>
-  </div>
-  <div class="card">
-    <h2>Daya</h2>
-    <div class="value" id="powerVal">0.00</div>
-    <div class="label">Watts (W)</div>
-    <svg class="gauge" viewBox="0 0 200 100">
-      <path d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke="#e9ecef" stroke-width="20"/>
-      <path id="arc-power" d="M20,100 A80,80 0 0,1 20,100" fill="none" stroke="#ffc107" stroke-width="20" stroke-linecap="round"/>
-      <line id="needle-power" x1="100" y1="100" x2="100" y2="30" stroke="#dc3545" stroke-width="3" stroke-linecap="round" transform="rotate(0 100 100)" />
-      <circle cx="100" cy="100" r="6" fill="#333"/>
-    </svg>
-    <canvas id="powerChart"></canvas>
-  </div>
-  <div class="card">
-    <h2>Resistansi</h2>
-    <div class="value" id="resistanceVal">0.00</div>
-    <div class="label">Ohm (Ω)</div>
-    <svg class="gauge" viewBox="0 0 200 100">
-      <path d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke="#e9ecef" stroke-width="20"/>
-      <path id="arc-resistance" d="M20,100 A80,80 0 0,1 20,100" fill="none" stroke="#dc3545" stroke-width="20" stroke-linecap="round"/>
-      <line id="needle-resistance" x1="100" y1="100" x2="100" y2="30" stroke="#dc3545" stroke-width="3" stroke-linecap="round" transform="rotate(0 100 100)" />
-      <circle cx="100" cy="100" r="6" fill="#333"/>
-    </svg>
-    <canvas id="resistanceChart"></canvas>
-  </div>
-</div>
-
 <script>
 // Konfigurasi
 const CSV_URL = "https://raw.githubusercontent.com/apiwWww/tugas-uas-elektronika-daya/refs/heads/main/data_simulasi.csv";
@@ -122,132 +8,138 @@ const MAX_POINTS = 30;
 
 // Fungsi bantu SVG
 function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
-  const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
-  return {
-    x: centerX + (radius * Math.cos(angleInRadians)),
-    y: centerY + (radius * Math.sin(angleInRadians))
-  };
+  const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
+  return {
+    x: centerX + (radius * Math.cos(angleInRadians)),
+    y: centerY + (radius * Math.sin(angleInRadians))
+  };
 }
 function describeArc(x, y, radius, startAngle, endAngle) {
-  const start = polarToCartesian(x, y, radius, endAngle);
-  const end = polarToCartesian(x, y, radius, startAngle);
-  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-  return ["M", start.x, start.y, "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y].join(" ");
+  const start = polarToCartesian(x, y, radius, endAngle);
+  const end = polarToCartesian(x, y, radius, startAngle);
+  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+  return ["M", start.x, start.y, "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y].join(" ");
 }
 
 // Inisialisasi chart
 const metrics = ['voltage', 'current', 'power', 'resistance'];
 const charts = {};
 const colors = {
-  voltage: 'rgba(0,123,255,1)',
-  current: 'rgba(40,167,69,1)',
-  power: 'rgba(255,193,7,1)',
-  resistance: 'rgba(220,53,69,1)'
+  voltage: 'rgba(0,123,255,1)',
+  current: 'rgba(40,167,69,1)',
+  power: 'rgba(255,193,7,1)',
+  resistance: 'rgba(220,53,69,1)'
 };
 
 metrics.forEach(metric => {
-  const ctx = document.getElementById(`${metric}Chart`).getContext('2d');
-  charts[metric] = new Chart(ctx, {
-    type: 'line',
-     {
-      labels: [],
-      datasets: [{
-         [],
-        borderColor: colors[metric],
-        backgroundColor: colors[metric].replace('1)', '0.1)'),
-        borderWidth: 2,
-        tension: 0.4,
-        pointRadius: 0
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false,
-      scales: {
-        y: { beginAtZero: false },
-        x: { display: false }
-      },
-      plugins: { legend: { display: false } }
-    }
-  });
+  const ctx = document.getElementById(`${metric}Chart`).getContext('2d');
+  charts[metric] = new Chart(ctx, {
+    type: 'line',
+    data: { // <--- KOREKSI
+      labels: [],
+      datasets: [{
+        data: [], // <--- KOREKSI
+        borderColor: colors[metric],
+        backgroundColor: colors[metric].replace('1)', '0.1)'),
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      scales: {
+        y: { beginAtZero: false },
+        x: { display: false }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
 });
 
 // Parse CSV
 function parseCSV(text) {
-  const lines = text.trim().split('\n');
-  return lines.slice(1).map(line => {
-    const cols = line.split(',');
-    return {
-      time: cols[0],
-      voltage: parseFloat(cols[1]),
-      current: parseFloat(cols[2]),
-      power: parseFloat(cols[3])
-    };
-  });
+  const lines = text.trim().split('\n');
+  return lines.slice(1).map(line => {
+    const cols = line.split(',');
+    return {
+      time: cols[0],
+      voltage: parseFloat(cols[1]),
+      current: parseFloat(cols[2]),
+      power: parseFloat(cols[3])
+    };
+  });
 }
 
 // Update dashboard
 function updateDashboard(index) {
-  if (index >= allRows.length) return;
-  const row = allRows[index];
-  const V = row.voltage;
-  const I = row.current;
-  const P = row.power;
-  const R = I > 0.01 ? V / I : 0;
-  const values = { voltage: V, current: I, power: P, resistance: R };
+  if (index >= allRows.length) return;
+  const row = allRows[index];
+  const V = row.voltage;
+  const I = row.current;
+  const P = row.power;
+  // Hitung Resistansi (R = V/I). Beri nilai 0 jika I terlalu kecil untuk menghindari pembagian dengan nol.
+  const R = I > 0.01 ? V / I : 0; 
+  const values = { voltage: V, current: I, power: P, resistance: R };
 
-  metrics.forEach(metric => {
-    const val = values[metric];
-    const max = MAX_VALUES[metric];
-    document.getElementById(`${metric}Val`).textContent = val.toFixed(2);
+  metrics.forEach(metric => {
+    const val = values[metric];
+    const max = MAX_VALUES[metric];
+    document.getElementById(`${metric}Val`).textContent = val.toFixed(2);
 
-    // Update arc
-    const capped = Math.min(Math.max(0, val), max);
-    const angle = (capped / max) * 180;
-    document.getElementById(`arc-${metric}`).setAttribute('d', describeArc(100, 100, 80, 0, angle));
+    // Update arc (Setengah lingkaran)
+    const capped = Math.min(Math.max(0, val), max);
+    // Sudut dihitung dari 0 (paling kiri) hingga 180 (paling kanan)
+    const angle = (capped / max) * 180; 
+    // Fungsi describeArc mengambil sudut 0 hingga 180, bukan -90 hingga 90
+    document.getElementById(`arc-${metric}`).setAttribute('d', describeArc(100, 100, 80, 0, angle));
 
-    // Update needle
-    const needleLine = document.getElementById(`needle-${metric}`);
-    if (needleLine) {
-      needleLine.setAttribute('transform', `rotate(${angle - 90} 100 100)`);
-    }
+    // Update needle
+    const needleLine = document.getElementById(`needle-${metric}`);
+    if (needleLine) {
+      // Putar jarum: 0 derajat berada di posisi jam 6 (-90 derajat di sumbu X).
+      // Jadi, putar sebesar (angle - 90) derajat
+      needleLine.setAttribute('transform', `rotate(${angle - 90} 100 100)`);
+    }
 
-    // Update chart
-    const dataset = charts[metric].data.datasets[0].data;
-    const labels = charts[metric].data.labels;
-    if (dataset.length >= MAX_POINTS) {
-      dataset.shift();
-      labels.shift();
-    }
-    dataset.push(val);
-    labels.push('');
-    charts[metric].update();
-  });
+    // Update chart
+    const dataset = charts[metric].data.datasets[0].data;
+    const labels = charts[metric].data.labels;
+    if (dataset.length >= MAX_POINTS) {
+      dataset.shift();
+      labels.shift();
+    }
+    dataset.push(val);
+    labels.push('');
+    charts[metric].update();
+  });
 }
 
 // Load data
 async function init() {
-  try {
-    const res = await fetch(`${CSV_URL}?t=${Date.now()}`);
-    const csvText = await res.text();
-    allRows = parseCSV(csvText);
-    startTime = Date.now();
-    updateDashboard(0);
-  } catch (err) {
-    console.error("Gagal memuat data:", err);
-  }
+  try {
+    // Tambahkan parameter waktu untuk memastikan file diunduh terbaru (menghindari cache)
+    const res = await fetch(`${CSV_URL}?t=${Date.now()}`); 
+    const csvText = await res.text();
+    allRows = parseCSV(csvText);
+    startTime = Date.now();
+    // Langsung tampilkan data pertama
+    updateDashboard(0); 
+  } catch (err) {
+    console.error("Gagal memuat data:", err);
+    // Tampilkan pesan error di konsol
+  }
 }
 
 // Main loop
 init();
 setInterval(() => {
-  if (allRows.length === 0) return;
-  const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
-  const index = Math.min(elapsedSec, allRows.length - 1);
-  updateDashboard(index);
-}, 1000);
+  if (allRows.length === 0) return;
+  // Hitung indeks data yang sesuai dengan detik yang telah berlalu
+  const elapsedSec = Math.floor((Date.now() - startTime) / 1000); 
+  const index = Math.min(elapsedSec, allRows.length - 1);
+  updateDashboard(index);
+}, 1000); // Update setiap 1 detik (1000 ms)
 </script>
-
-</body>
-</html>
