@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>IoT Dashboard Simulasi</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<h2>Grafik Simulasi IoT</h2>
+<canvas id="myChart"></canvas>
+
+<script>
+async function loadData() {
+    const url = "https://raw.githubusercontent.com/apiwWww/tugas-uas-elektronika-daya/refs/heads/main/data_simulasi.csv";
+    const res = await fetch(url);
+    const data = await res.text();
+
+    const rows = data.split("\n").slice(1);
+    
+    let time = [];
+    let voltage = [];
+    let current = [];
+    let power = [];
+
+    rows.forEach(row => {
+        const cols = row.split(",");
+        time.push(cols[0]);
+        voltage.push(parseFloat(cols[1]));
+        current.push(parseFloat(cols[2]));
+        power.push(parseFloat(cols[3]));
+    });
+
+    return { time, voltage, current, power };
+}
+
+loadData().then(d => {
+    new Chart(document.getElementById("myChart"), {
+        type: 'line',
+        data: {
+            labels: d.time,
+            datasets: [
+                { label: "Voltage", data: d.voltage, borderWidth: 2 },
+                { label: "Current", data: d.current, borderWidth: 2 },
+                { label: "Power", data: d.power, borderWidth: 2 }
+            ]
+        }
+    });
+});
+</script>
+
+</body>
+</html>
