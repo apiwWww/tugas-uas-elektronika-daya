@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dashboard Realtime - GitHub</title>
+  <title>Dashboard Realtime - GitHub + Gauge</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -30,68 +30,136 @@
       padding: 20px;
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      width: 240px;
-      min-height: 380px;
+      width: 250px;
+      min-height: 420px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     .value {
       font-size: 28px;
       font-weight: bold;
       color: #007bff;
-      margin: 12px 0;
+      margin: 10px 0;
     }
     .label {
       font-size: 14px;
       color: #6c757d;
+      margin-bottom: 15px;
     }
+
+    /* Gauge Styles */
+    .gauge {
+      width: 160px;
+      height: 80px;
+      background: #e9ecef;
+      border-radius: 80px 80px 0 0;
+      position: relative;
+      margin: 10px auto 20px;
+      overflow: hidden;
+    }
+    .gauge-center {
+      width: 10px;
+      height: 10px;
+      background: #333;
+      border-radius: 50%;
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+    }
+    .needle {
+      width: 4px;
+      height: 75px;
+      background: #dc3545;
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform-origin: bottom;
+      transform: translateX(-50%) rotate(90deg);
+      transition: transform 0.5s ease-out;
+      z-index: 1;
+    }
+
     canvas {
-      margin-top: 15px;
+      margin-top: 10px;
       height: 150px !important;
     }
   </style>
 </head>
 <body>
 
-<h1>Dashboard Monitoring Realtime (Data dari GitHub)</h1>
+<h1>Dashboard Monitoring Realtime (GitHub + Gauge)</h1>
 <div class="dashboard">
   <div class="card">
     <h2>Tegangan</h2>
     <div class="value" id="voltageVal">0.00</div>
     <div class="label">Volts (V)</div>
+    <div class="gauge">
+      <div class="needle" id="voltageNeedle"></div>
+      <div class="gauge-center"></div>
+    </div>
     <canvas id="voltageChart"></canvas>
   </div>
   <div class="card">
     <h2>Arus</h2>
     <div class="value" id="currentVal">0.00</div>
     <div class="label">Amperes (A)</div>
+    <div class="gauge">
+      <div class="needle" id="currentNeedle"></div>
+      <div class="gauge-center"></div>
+    </div>
     <canvas id="currentChart"></canvas>
   </div>
   <div class="card">
     <h2>Daya</h2>
     <div class="value" id="powerVal">0.00</div>
     <div class="label">Watts (W)</div>
+    <div class="gauge">
+      <div class="needle" id="powerNeedle"></div>
+      <div class="gauge-center"></div>
+    </div>
     <canvas id="powerChart"></canvas>
   </div>
   <div class="card">
     <h2>Resistansi</h2>
     <div class="value" id="resistanceVal">0.00</div>
     <div class="label">Ohm (Ω)</div>
+    <div class="gauge">
+      <div class="needle" id="resistanceNeedle"></div>
+      <div class="gauge-center"></div>
+    </div>
     <canvas id="resistanceChart"></canvas>
   </div>
 </div>
 
 <script>
-// Ganti dengan URL raw file CSV-mu di GitHub
+// ✅ URL CSV-mu (sudah benar!)
 const CSV_URL = "https://raw.githubusercontent.com/apiwWww/tugas-uas-elektronika-daya/refs/heads/main/data_simulasi.csv";
+
+// Konfigurasi maksimum untuk gauge
+const MAX_VALUES = {
+  voltage: 300,
+  current: 10,
+  power: 3000,
+  resistance: 300
+};
 
 let allRows = [];
 let startTime = null;
 const MAX_POINTS = 30;
 
-// Inisialisasi Chart.js
+// Inisialisasi chart & simpan referensi needle
 const metrics = ['voltage', 'current', 'power', 'resistance'];
 const charts = {};
+const needles = {};
 
 metrics.forEach(metric => {
+  // Simpan elemen needle
+  needles[metric] = document.getElementById(`${metric}Needle`);
+
+  // Buat chart
   const ctx = document.getElementById(`${metric}Chart`).getContext('2d');
   const color = 
     metric === 'voltage' ? 'rgba(0,123,255,1)' :
@@ -139,7 +207,7 @@ function parseCSV(text) {
   });
 }
 
-// Update tampilan berdasarkan indeks baris
+// Update tampilan (angka + gauge + chart)
 function updateDashboard(index) {
   if (index >= allRows.length) return;
 
@@ -149,18 +217,24 @@ function updateDashboard(index) {
   const P = row.power;
   const R = I > 0.01 ? V / I : 0;
 
-  // Update nilai
-  document.getElementById('voltageVal').textContent = V.toFixed(2);
-  document.getElementById('currentVal').textContent = I.toFixed(2);
-  document.getElementById('powerVal').textContent = P.toFixed(2);
-  document.getElementById('resistanceVal').textContent = R.toFixed(2);
+  const values = { voltage: V, current: I, power: P, resistance: R };
 
-  // Update grafik
-  [V, I, P, R].forEach((val, i) => {
-    const metric = metrics[i];
+  // Update semua komponen
+  metrics.forEach(metric => {
+    const val = values[metric];
+    const max = MAX_VALUES[metric];
+
+    // ✅ Update angka
+    document.getElementById(`${metric}Val`).textContent = val.toFixed(2);
+
+    // ✅ Update gauge (0–max → 0–180 derajat)
+    const capped = Math.min(Math.max(0, val), max);
+    const deg = (capped / max) * 180;
+    needles[metric].style.transform = `translateX(-50%) rotate(${deg}deg)`;
+
+    // ✅ Update chart
     const dataset = charts[metric].data.datasets[0].data;
     const labels = charts[metric].data.labels;
-
     if (dataset.length >= MAX_POINTS) {
       dataset.shift();
       labels.shift();
@@ -171,24 +245,22 @@ function updateDashboard(index) {
   });
 }
 
-// Load CSV dari GitHub (sekali saat halaman dibuka)
+// Load CSV dari GitHub
 async function init() {
   try {
-    // Cache-busting agar ambil versi terbaru saat reload halaman
     const res = await fetch(`${CSV_URL}?t=${Date.now()}`);
     const csvText = await res.text();
     allRows = parseCSV(csvText);
-    console.log(`✅ ${allRows.length} baris data dimuat dari GitHub`);
+    console.log(`✅ ${allRows.length} baris data dimuat`);
 
     startTime = Date.now();
-    // Tampilkan data pertama
-    updateDashboard(0);
+    updateDashboard(0); // tampilkan data pertama
   } catch (err) {
-    console.error("❌ Gagal memuat data:", err);
+    console.error("❌ Gagal memuat CSV:", err);
   }
 }
 
-// Jalankan setiap detik: ambil baris sesuai detik ke-n
+// Jalankan tiap detik
 function playData() {
   if (allRows.length === 0) return;
   const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
