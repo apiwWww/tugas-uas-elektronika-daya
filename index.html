@@ -85,7 +85,7 @@
       bottom: 0;
       left: 50%;
       transform-origin: bottom;
-      transition: transform 0.5s ease-out; /* Transisi Halus */
+      transition: transform 0.5s ease-out;
       z-index: 1;
     }
 
@@ -145,7 +145,7 @@
   <div class="data-card">
     <h2>Resistansi</h2>
     <div class="display" id="resistanceDisplay">0.00</div>
-    <div class="unit-label">Ohm ($\Omega$)</div>
+    <div class="unit-label">Ohm (Ω)</div>
     <div class="gauge" id="resistanceGauge">
       <div class="needle" id="resistanceNeedle"></div>
       <div class="gauge-center"></div>
@@ -157,11 +157,7 @@
 
 </div>
 
-
 <script>
-// Pastikan URL-nya sudah benar
-const CSV_URL = "https://raw.githubusercontent.com/apiwWww/uas-eleda/refs/heads/main/data_simulasi.csv";
-
 // Konfigurasi Maksimum untuk Gauge
 const MAX_CONFIG = {
   voltage: 300, 
@@ -171,7 +167,7 @@ const MAX_CONFIG = {
 };
 const MAX_DATA_POINTS = 30;
 
-// --- DEFINISI KELAS DATA CARD ---
+// --- KELAS DATA CARD ---
 class DataCard {
   constructor(key, label, unit, color, maxGauge) {
     this.key = key;
@@ -179,11 +175,9 @@ class DataCard {
     this.unit = unit;
     this.maxGauge = maxGauge;
     
-    // Ambil elemen DOM
     this.displayElement = document.getElementById(`${key}Display`);
     this.needleElement = document.getElementById(`${key}Needle`);
     
-    // Inisialisasi Chart
     this.chart = this.createChart(color);
   }
 
@@ -217,15 +211,12 @@ class DataCard {
   }
 
   update(time, value) {
-    // 1. Update Display Angka
     this.displayElement.innerText = value.toFixed(2);
     
-    // 2. Update Gauge (0 - maxGauge -> 0 - 180°)
     const cappedValue = Math.min(Math.max(0, value), this.maxGauge);
     let deg = (cappedValue / this.maxGauge) * 180;
-    this.needleElement.style.transform = `rotate(${deg}deg)`;
+    this.needleElement.style.transform = `translateX(-50%) rotate(${deg}deg)`;
 
-    // 3. Update Chart
     if (this.chart.data.labels.length >= MAX_DATA_POINTS) {
       this.chart.data.labels.shift();
       this.chart.data.datasets[0].data.shift();
@@ -237,7 +228,7 @@ class DataCard {
   }
 }
 
-// --- INISIALISASI SEMUA KARTU ---
+// --- INISIALISASI KARTU ---
 const cards = [
   new DataCard('voltage', 'Tegangan', 'V', 'rgba(0, 123, 255, 1)', MAX_CONFIG.voltage),
   new DataCard('current', 'Arus', 'A', 'rgba(40, 167, 69, 1)', MAX_CONFIG.current),
@@ -245,14 +236,20 @@ const cards = [
   new DataCard('resistance', 'Resistansi', 'Ω', 'rgba(220, 53, 69, 1)', MAX_CONFIG.resistance)
 ];
 
-// --- FUNGSI UTAMA LOAD CSV ---
+// --- FUNGSI LOAD CSV DENGAN CACHE BUSTING ---
 async function loadCSV() {
+  // Tambahkan timestamp untuk memaksa ambil data terbaru
+  const BASE_URL = "https://raw.githubusercontent.com/apiwWww/uas-eleda/refs/heads/main/data_simulasi.csv";
+  const url = `${BASE_URL}?t=${Date.now()}`;
+
   try {
-    const response = await fetch(CSV_URL);
+    const response = await fetch(url);
     if (!response.ok) throw new Error('Gagal memuat CSV');
     
     const text = await response.text();
     const rows = text.trim().split("\n");
+    if (rows.length < 2) throw new Error('Data CSV kosong');
+
     const lastRow = rows[rows.length - 1];
     const data = lastRow.split(",");
 
@@ -260,19 +257,12 @@ async function loadCSV() {
     let voltage = parseFloat(data[1]);
     let current = parseFloat(data[2]);
     let power = parseFloat(data[3]);
-    let resistance = (current !== 0) ? (voltage / current) : 0;
+    let resistance = (current !== 0) ? voltage / current : 0;
 
-    // Mapping nilai data
-    const values = {
-        voltage: voltage,
-        current: current,
-        power: power,
-        resistance: resistance
-    };
+    const values = { voltage, current, power, resistance };
 
-    // Iterasi melalui objek kartu dan panggil metode update()
     cards.forEach(card => {
-        card.update(time, values[card.key]);
+      card.update(time, values[card.key]);
     });
 
   } catch (error) {
@@ -280,7 +270,7 @@ async function loadCSV() {
   }
 }
 
-// Mulai pengambilan data
+// Jalankan pertama kali, lalu setiap 1 detik
 loadCSV();
 setInterval(loadCSV, 1000);
 </script>
