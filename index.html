@@ -2,127 +2,317 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard CSV Realtime</title>
+  <title>Dashboard CSV Realtime (4 Parameter)</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
-      font-family: Arial;
-      background: #f0f0f0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f7f6;
       padding: 20px;
       text-align: center;
+      color: #333;
     }
 
-    .display-box {
+    h1 {
+      color: #007bff;
+      margin-bottom: 30px;
+    }
+
+    .dashboard-container {
       display: flex;
+      flex-wrap: wrap;
       justify-content: center;
-      gap: 40px;
-      margin-bottom: 20px;
+      gap: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .data-card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      width: 250px;
+      min-height: 420px; /* Menjaga konsistensi tinggi kartu */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     .display {
-      font-size: 30px;
+      font-size: 28px;
       font-weight: bold;
-      background: white;
-      padding: 15px 25px;
-      border-radius: 15px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.2);
+      color: #007bff;
+      margin-bottom: 15px;
+      padding: 5px 0;
     }
 
-    /* Gauge */
-    #gauge {
-      width: 300px;
-      height: 150px;
-      background: #ddd;
-      border-radius: 150px 150px 0 0;
+    .unit-label {
+      font-size: 14px;
+      color: #6c757d;
+      margin-top: -10px;
+      margin-bottom: 15px;
+    }
+
+    /* Gauge Styles */
+    .gauge {
+      width: 160px; /* Ukuran diperkecil agar 4 muat dalam container */
+      height: 80px;
+      background: #e9ecef;
+      border-radius: 80px 80px 0 0;
       position: relative;
-      margin: 20px auto;
+      margin: 10px auto 20px;
       overflow: hidden;
     }
 
-    #needle {
-      width: 6px;
-      height: 120px;
-      background: red;
+    .gauge-center {
+      width: 10px;
+      height: 10px;
+      background: #333;
+      border-radius: 50%;
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+    }
+
+    .needle {
+      width: 4px;
+      height: 75px; /* Disesuaikan dengan ukuran gauge */
+      background: #dc3545; /* Merah */
       position: absolute;
       bottom: 0;
       left: 50%;
       transform-origin: bottom;
+      transition: transform 0.5s ease-out; /* TRANSISI HALUS */
+      z-index: 1;
+    }
+
+    /* Chart Canvas */
+    .chart-container {
+      width: 100%;
+      margin-top: 15px;
+      /* Membatasi tinggi agar tidak terlalu besar */
+      max-height: 200px; 
     }
   </style>
 </head>
 <body>
 
-<h1>Dashboard Pembacaan CSV</h1>
+<h1>Dashboard Monitoring Realtime (4 Parameter)</h1>
 
-<div class="display-box">
-  <div class="display" id="voltageDisplay">V: 0</div>
-  <div class="display" id="currentDisplay">I: 0</div>
-  <div class="display" id="powerDisplay">P: 0</div>
+<div class="dashboard-container">
+
+  <div class="data-card">
+    <h2>Tegangan</h2>
+    <div class="display" id="voltageDisplay">0.00</div>
+    <div class="unit-label">Volts (V)</div>
+    <div class="gauge" id="voltageGauge">
+      <div class="needle" id="voltageNeedle"></div>
+      <div class="gauge-center"></div>
+    </div>
+    <div class="chart-container">
+      <canvas id="voltageChart"></canvas>
+    </div>
+  </div>
+
+  <div class="data-card">
+    <h2>Arus</h2>
+    <div class="display" id="currentDisplay">0.00</div>
+    <div class="unit-label">Amperes (A)</div>
+    <div class="gauge" id="currentGauge">
+      <div class="needle" id="currentNeedle"></div>
+      <div class="gauge-center"></div>
+    </div>
+    <div class="chart-container">
+      <canvas id="currentChart"></canvas>
+    </div>
+  </div>
+
+  <div class="data-card">
+    <h2>Daya</h2>
+    <div class="display" id="powerDisplay">0.00</div>
+    <div class="unit-label">Watts (W)</div>
+    <div class="gauge" id="powerGauge">
+      <div class="needle" id="powerNeedle"></div>
+      <div class="gauge-center"></div>
+    </div>
+    <div class="chart-container">
+      <canvas id="powerChart"></canvas>
+    </div>
+  </div>
+
+  <div class="data-card">
+    <h2>Resistansi</h2>
+    <div class="display" id="resistanceDisplay">0.00</div>
+    <div class="unit-label">Ohm ($\Omega$)</div>
+    <div class="gauge" id="resistanceGauge">
+      <div class="needle" id="resistanceNeedle"></div>
+      <div class="gauge-center"></div>
+    </div>
+    <div class="chart-container">
+      <canvas id="resistanceChart"></canvas>
+    </div>
+  </div>
+
 </div>
 
-<!-- Gauge -->
-<div id="gauge">
-  <div id="needle"></div>
-</div>
-
-<br>
-
-<canvas id="chart" width="400" height="200"></canvas>
 
 <script>
-const CSV_URL = "https://raw.githubusercontent.com/apiwWww/uas-eleda/refs/heads/main/data_simulasi.csv
-";  // GANTI
+// Pastikan URL-nya sudah benar dan mengarah ke file CSV yang dapat diakses publik.
+const CSV_URL = "https://raw.githubusercontent.com/apiwWww/uas-eleda/refs/heads/main/data_simulasi.csv";
 
-let ctx = document.getElementById('chart').getContext('2d');
+// Konfigurasi Range Maksimum untuk Gauge (Sesuaikan dengan data Anda)
+const MAX_V = 300; // Maksimum Voltan untuk skala 180 derajat
+const MAX_I = 10;  // Maksimum Arus
+const MAX_P = 3000; // Maksimum Daya (MAX_V * MAX_I)
+const MAX_R = 300; // Maksimum Resistansi (Asumsi)
 
-let chart = new Chart(ctx, {
-  type: 'line',
-  data: {
-    labels: [],
-    datasets: [{
-      label: 'Power (W)',
-      data: [],
-      borderWidth: 2
-    }]
-  },
-  options: {
-    animation: false,
-    scales: {
-      y: { beginAtZero: true }
+// Objek untuk menampung konfigurasi chart
+const chartConfigs = {
+  voltage: { label: 'Tegangan (V)', unit: 'V', color: 'rgba(0, 123, 255, 1)' },
+  current: { label: 'Arus (A)', unit: 'A', color: 'rgba(40, 167, 69, 1)' },
+  power: { label: 'Daya (W)', unit: 'W', color: 'rgba(255, 193, 7, 1)' },
+  resistance: { label: 'Resistansi (Ω)', unit: 'Ω', color: 'rgba(220, 53, 69, 1)' }
+};
+
+// Fungsi untuk membuat Chart baru
+function createChart(id, label, unit, color) {
+  let ctx = document.getElementById(id).getContext('2d');
+  return new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: label,
+        data: [],
+        borderColor: color,
+        backgroundColor: color.replace(', 1)', ', 0.2)'),
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 0 // Sembunyikan titik data
+      }]
+    },
+    options: {
+      animation: false,
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { 
+          beginAtZero: true, 
+          title: {
+            display: true,
+            text: unit
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: 'Waktu'
+          }
+        }
+      },
+      plugins: {
+        legend: { display: false }
+      }
     }
-  }
-});
-
-async function loadCSV() {
-  const response = await fetch(CSV_URL);
-  const text = await response.text();
-  const rows = text.trim().split("\n").slice(-1)[0].split(",");
-
-  let time = rows[0];
-  let voltage = parseFloat(rows[1]);
-  let current = parseFloat(rows[2]);
-  let power = parseFloat(rows[3]);
-
-  // Update display
-  document.getElementById("voltageDisplay").innerText = "V: " + voltage.toFixed(2);
-  document.getElementById("currentDisplay").innerText = "I: " + current.toFixed(2);
-  document.getElementById("powerDisplay").innerText = "P: " + power.toFixed(2);
-
-  // Update gauge (0–300V → 180°)
-  let deg = (voltage / 300) * 180;
-  document.getElementById("needle").style.transform = `rotate(${deg}deg)`;
-
-  // Update chart
-  if (chart.data.labels.length > 50) {
-    chart.data.labels.shift();
-    chart.data.datasets[0].data.shift();
-  }
-
-  chart.data.labels.push(time.slice(11,19));
-  chart.data.datasets[0].data.push(power);
-  chart.update();
+  });
 }
 
+// Inisialisasi semua Chart
+const voltageChart = createChart('voltageChart', chartConfigs.voltage.label, chartConfigs.voltage.unit, chartConfigs.voltage.color);
+const currentChart = createChart('currentChart', chartConfigs.current.label, chartConfigs.current.unit, chartConfigs.current.color);
+const powerChart = createChart('powerChart', chartConfigs.power.label, chartConfigs.power.unit, chartConfigs.power.color);
+const resistanceChart = createChart('resistanceChart', chartConfigs.resistance.label, chartConfigs.resistance.unit, chartConfigs.resistance.color);
+
+// Mapping chart ke key data
+const charts = {
+    voltage: voltageChart,
+    current: currentChart,
+    power: powerChart,
+    resistance: resistanceChart
+};
+
+// Fungsi utama untuk memuat dan memperbarui data
+async function loadCSV() {
+  try {
+    const response = await fetch(CSV_URL);
+    if (!response.ok) throw new Error('Gagal memuat CSV');
+    
+    const text = await response.text();
+    // Ambil baris terakhir
+    const rows = text.trim().split("\n");
+    const lastRow = rows[rows.length - 1];
+    const data = lastRow.split(",");
+
+    // Parse data dari CSV (Sesuaikan indeks jika CSV Anda berbeda)
+    let time = data[0];
+    let voltage = parseFloat(data[1]);
+    let current = parseFloat(data[2]);
+    let power = parseFloat(data[3]);
+    
+    // Hitung Resistansi (R = V/I)
+    let resistance = (current !== 0) ? (voltage / current) : 0;
+
+    // Kumpulkan semua nilai dalam objek
+    const values = {
+        voltage: voltage,
+        current: current,
+        power: power,
+        resistance: resistance
+    };
+
+    // Mapping elemen display, needle, dan nilai maksimum
+    const elements = [
+        { key: 'voltage', displayId: 'voltageDisplay', needleId: 'voltageNeedle', max: MAX_V },
+        { key: 'current', displayId: 'currentDisplay', needleId: 'currentNeedle', max: MAX_I },
+        { key: 'power', displayId: 'powerDisplay', needleId: 'powerNeedle', max: MAX_P },
+        { key: 'resistance', displayId: 'resistanceDisplay', needleId: 'resistanceNeedle', max: MAX_R }
+    ];
+
+    const MAX_DATA_POINTS = 30; // Batas jumlah titik data di grafik
+
+    // Iterasi melalui semua parameter untuk update
+    elements.forEach(item => {
+        const value = values[item.key];
+        const display = document.getElementById(item.displayId);
+        const needle = document.getElementById(item.needleId);
+        const chart = charts[item.key];
+
+        // 1. Update Display Angka
+        display.innerText = value.toFixed(2);
+        
+        // 2. Update Gauge (0 - item.max -> 0 - 180°)
+        // Batasi nilai agar tidak melebihi maksimum
+        const cappedValue = Math.min(Math.max(0, value), item.max);
+        let deg = (cappedValue / item.max) * 180;
+        
+        // Update needle transform. Transisi halus diatur di CSS.
+        needle.style.transform = `rotate(${deg}deg)`;
+
+        // 3. Update Chart
+        if (chart.data.labels.length >= MAX_DATA_POINTS) {
+            chart.data.labels.shift();
+            chart.data.datasets[0].data.shift();
+        }
+
+        // Ambil waktu HH:MM:SS
+        chart.data.labels.push(time.slice(11, 19)); 
+        chart.data.datasets[0].data.push(value);
+        chart.update();
+    });
+
+  } catch (error) {
+    console.error("Error memuat atau memproses CSV:", error);
+    // Anda bisa menambahkan tampilan error di dashboard jika perlu
+  }
+}
+
+// Panggil pertama kali untuk menampilkan data awal
+loadCSV();
+
+// Set interval untuk refresh data setiap 1 detik
 setInterval(loadCSV, 1000);
 </script>
 
