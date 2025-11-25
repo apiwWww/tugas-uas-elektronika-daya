@@ -1,125 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dashboard Realtime - GitHub + Gauge</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f5f7fa;
-      padding: 20px;
-      text-align: center;
-      color: #333;
-    }
-    h1 {
-      color: #007bff;
-      margin-bottom: 10px;
-    }
-    #debug {
-      color: red;
-      font-size: 14px;
-      margin-bottom: 15px;
-      min-height: 20px;
-    }
-    .dashboard {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 25px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      width: 250px;
-      min-height: 420px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .value {
-      font-size: 28px;
-      font-weight: bold;
-      color: #007bff;
-      margin: 10px 0;
-    }
-    .label {
-      font-size: 14px;
-      color: #6c757d;
-      margin-bottom: 15px;
-    }
-    .gauge {
-      width: 180px;
-      height: 90px;
-      margin: 10px auto 20px;
-    }
-    canvas {
-      margin-top: 10px;
-      height: 150px !important;
-    }
-  </style>
-</head>
-<body>
-
-<h1>Dashboard Monitoring Realtime (GitHub + Gauge)</h1>
-<div id="debug"></div>
-<div class="dashboard">
-  <div class="card">
-    <h2>Tegangan</h2>
-    <div class="value" id="voltageVal">0.00</div>
-    <div class="label">Volts (V)</div>
-    <svg class="gauge" viewBox="0 0 200 100">
-      <path d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke="#e9ecef" stroke-width="20"/>
-      <path id="arc-voltage" d="M20,100 A80,80 0 0,1 20,100" fill="none" stroke="#007bff" stroke-width="20" stroke-linecap="round"/>
-      <line id="needle-voltage" x1="100" y1="100" x2="100" y2="30" stroke="#dc3545" stroke-width="3" stroke-linecap="round" transform="rotate(0 100 100)" />
-      <circle cx="100" cy="100" r="6" fill="#333"/>
-    </svg>
-    <canvas id="voltageChart"></canvas>
-  </div>
-  <div class="card">
-    <h2>Arus</h2>
-    <div class="value" id="currentVal">0.00</div>
-    <div class="label">Amperes (A)</div>
-    <svg class="gauge" viewBox="0 0 200 100">
-      <path d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke="#e9ecef" stroke-width="20"/>
-      <path id="arc-current" d="M20,100 A80,80 0 0,1 20,100" fill="none" stroke="#28a745" stroke-width="20" stroke-linecap="round"/>
-      <line id="needle-current" x1="100" y1="100" x2="100" y2="30" stroke="#dc3545" stroke-width="3" stroke-linecap="round" transform="rotate(0 100 100)" />
-      <circle cx="100" cy="100" r="6" fill="#333"/>
-    </svg>
-    <canvas id="currentChart"></canvas>
-  </div>
-  <div class="card">
-    <h2>Daya</h2>
-    <div class="value" id="powerVal">0.00</div>
-    <div class="label">Watts (W)</div>
-    <svg class="gauge" viewBox="0 0 200 100">
-      <path d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke="#e9ecef" stroke-width="20"/>
-      <path id="arc-power" d="M20,100 A80,80 0 0,1 20,100" fill="none" stroke="#ffc107" stroke-width="20" stroke-linecap="round"/>
-      <line id="needle-power" x1="100" y1="100" x2="100" y2="30" stroke="#dc3545" stroke-width="3" stroke-linecap="round" transform="rotate(0 100 100)" />
-      <circle cx="100" cy="100" r="6" fill="#333"/>
-    </svg>
-    <canvas id="powerChart"></canvas>
-  </div>
-  <div class="card">
-    <h2>Resistansi</h2>
-    <div class="value" id="resistanceVal">0.00</div>
-    <div class="label">Ohm (Ω)</div>
-    <svg class="gauge" viewBox="0 0 200 100">
-      <path d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke="#e9ecef" stroke-width="20"/>
-      <path id="arc-resistance" d="M20,100 A80,80 0 0,1 20,100" fill="none" stroke="#dc3545" stroke-width="20" stroke-linecap="round"/>
-      <line id="needle-resistance" x1="100" y1="100" x2="100" y2="30" stroke="#dc3545" stroke-width="3" stroke-linecap="round" transform="rotate(0 100 100)" />
-      <circle cx="100" cy="100" r="6" fill="#333"/>
-    </svg>
-    <canvas id="resistanceChart"></canvas>
-  </div>
-</div>
-
 <script>
+// ✅ URL CSV
 const CSV_URL = "https://raw.githubusercontent.com/apiwWww/tugas-uas-elektronika-daya/refs/heads/main/data_simulasi.csv";
 
 const MAX_VALUES = {
@@ -222,16 +102,10 @@ function updateDashboard(index) {
     const arcPath = describeArc(100, 100, 80, 0, angle);
     document.getElementById(`arc-${metric}`).setAttribute('d', arcPath);
 
-    // Update needle with error check
+    // Update needle using transform (stable!)
     const needleAngle = angle - 90;
     const needleLine = document.getElementById(`needle-${metric}`);
-    const debugEl = document.getElementById('debug');
-
-    if (!needleLine) {
-      debugEl.textContent = `❌ ERROR: Elemen #needle-${metric} tidak ditemukan!`;
-    } else {
-      needleLine.setAttribute('transform', `rotate(${needleAngle} 100 100)`);
-    }
+    needleLine.setAttribute('transform', `rotate(${needleAngle} 100 100)`);
 
     // Update chart
     const dataset = charts[metric].data.datasets[0].data;
@@ -251,11 +125,11 @@ async function init() {
     const res = await fetch(`${CSV_URL}?t=${Date.now()}`);
     const csvText = await res.text();
     allRows = parseCSV(csvText);
+    console.log(`✅ ${allRows.length} baris data dimuat`);
     startTime = Date.now();
     updateDashboard(0);
   } catch (err) {
-    document.getElementById('debug').textContent = "❌ Gagal memuat data CSV!";
-    console && console.error(err);
+    console.error("❌ Gagal memuat CSV:", err);
   }
 }
 
@@ -269,6 +143,3 @@ function playData() {
 init();
 setInterval(playData, 1000);
 </script>
-
-</body>
-</html>
