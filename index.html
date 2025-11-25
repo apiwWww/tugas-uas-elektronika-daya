@@ -1,5 +1,4 @@
 <script>
-// ✅ URL CSV
 const CSV_URL = "https://raw.githubusercontent.com/apiwWww/tugas-uas-elektronika-daya/refs/heads/main/data_simulasi.csv";
 
 const MAX_VALUES = {
@@ -40,10 +39,10 @@ metrics.forEach(metric => {
   const ctx = document.getElementById(`${metric}Chart`).getContext('2d');
   charts[metric] = new Chart(ctx, {
     type: 'line',
-    data: {
+     {
       labels: [],
       datasets: [{
-        data: [],
+         [],
         borderColor: color,
         backgroundColor: color.replace('1)', '0.1)'),
         borderWidth: 2,
@@ -98,16 +97,18 @@ function updateDashboard(index) {
     const percent = capped / max;
     const angle = percent * 180;
 
+    // Update arc
     const arcPath = describeArc(100, 100, 80, 0, angle);
     document.getElementById(`arc-${metric}`).setAttribute('d', arcPath);
 
+    // Update needle
     const needleAngle = angle - 90;
-    const radians = needleAngle * Math.PI / 180;
-    const nx = 100 + 70 * Math.cos(radians);
-    const ny = 100 + 70 * Math.sin(radians);
-    document.getElementById(`needle-${metric}`).setAttribute('x2', nx);
-    document.getElementById(`needle-${metric}`).setAttribute('y2', ny);
+    const needleLine = document.getElementById(`needle-${metric}`);
+    if (needleLine) {
+      needleLine.setAttribute('transform', `rotate(${needleAngle} 100 100)`);
+    }
 
+    // Update chart
     const dataset = charts[metric].data.datasets[0].data;
     const labels = charts[metric].data.labels;
     if (dataset.length >= MAX_POINTS) {
@@ -125,11 +126,10 @@ async function init() {
     const res = await fetch(`${CSV_URL}?t=${Date.now()}`);
     const csvText = await res.text();
     allRows = parseCSV(csvText);
-    console.log(`✅ ${allRows.length} baris data dimuat`);
     startTime = Date.now();
     updateDashboard(0);
   } catch (err) {
-    console.error("❌ Gagal memuat CSV:", err);
+    console.error("Gagal muat CSV:", err);
   }
 }
 
