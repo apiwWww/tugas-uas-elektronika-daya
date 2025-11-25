@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard Realtime</title>
+  <title>Dashboard CSV Realtime</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -12,20 +12,30 @@
       text-align: center;
     }
 
-    .display {
-      font-size: 40px;
-      margin-bottom: 10px;
-      font-weight: bold;
+    .display-box {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-bottom: 20px;
     }
 
-    /* Gauge styling */
+    .display {
+      font-size: 30px;
+      font-weight: bold;
+      background: white;
+      padding: 15px 25px;
+      border-radius: 15px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.2);
+    }
+
+    /* Gauge */
     #gauge {
       width: 300px;
       height: 150px;
       background: #ddd;
       border-radius: 150px 150px 0 0;
       position: relative;
-      margin: auto;
+      margin: 20px auto;
       overflow: hidden;
     }
 
@@ -42,63 +52,78 @@
 </head>
 <body>
 
-<h1>Dashboard Realtime</h1>
+<h1>Dashboard Pembacaan CSV</h1>
 
-<div class="display" id="valueDisplay">0</div>
+<div class="display-box">
+  <div class="display" id="voltageDisplay">V: 0</div>
+  <div class="display" id="currentDisplay">I: 0</div>
+  <div class="display" id="powerDisplay">P: 0</div>
+</div>
 
 <!-- Gauge -->
 <div id="gauge">
   <div id="needle"></div>
 </div>
 
-<br><br>
+<br>
 
 <canvas id="chart" width="400" height="200"></canvas>
 
 <script>
-  let ctx = document.getElementById('chart').getContext('2d');
+const CSV_URL = "https://raw.githubusercontent.com/apiwWww/uas-eleda/refs/heads/main/data_simulasi.csv
+";  // GANTI
 
-  let chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: [],
-      datasets: [{
-        label: 'Data Realtime',
-        data: [],
-        borderWidth: 2
-      }]
-    },
-    options: {
-      animation: false,
-      scales: {
-        y: { beginAtZero: true }
-      }
+let ctx = document.getElementById('chart').getContext('2d');
+
+let chart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [{
+      label: 'Power (W)',
+      data: [],
+      borderWidth: 2
+    }]
+  },
+  options: {
+    animation: false,
+    scales: {
+      y: { beginAtZero: true }
     }
-  });
+  }
+});
 
-  function update() {
-    // generate angka random
-    let value = Math.floor(Math.random() * 100);
+async function loadCSV() {
+  const response = await fetch(CSV_URL);
+  const text = await response.text();
+  const rows = text.trim().split("\n").slice(-1)[0].split(",");
 
-    // update display
-    document.getElementById("valueDisplay").innerText = value;
+  let time = rows[0];
+  let voltage = parseFloat(rows[1]);
+  let current = parseFloat(rows[2]);
+  let power = parseFloat(rows[3]);
 
-    // update gauge (max 100 → 180 derajat)
-    let deg = (value / 100) * 180;
-    document.getElementById("needle").style.transform = `rotate(${deg}deg)`;
+  // Update display
+  document.getElementById("voltageDisplay").innerText = "V: " + voltage.toFixed(2);
+  document.getElementById("currentDisplay").innerText = "I: " + current.toFixed(2);
+  document.getElementById("powerDisplay").innerText = "P: " + power.toFixed(2);
 
-    // update chart
-    if (chart.data.labels.length > 30) {
-      chart.data.labels.shift();
-      chart.data.datasets[0].data.shift();
-    }
+  // Update gauge (0–300V → 180°)
+  let deg = (voltage / 300) * 180;
+  document.getElementById("needle").style.transform = `rotate(${deg}deg)`;
 
-    chart.data.labels.push('');
-    chart.data.datasets[0].data.push(value);
-    chart.update();
+  // Update chart
+  if (chart.data.labels.length > 50) {
+    chart.data.labels.shift();
+    chart.data.datasets[0].data.shift();
   }
 
-  setInterval(update, 1000);
+  chart.data.labels.push(time.slice(11,19));
+  chart.data.datasets[0].data.push(power);
+  chart.update();
+}
+
+setInterval(loadCSV, 1000);
 </script>
 
 </body>
