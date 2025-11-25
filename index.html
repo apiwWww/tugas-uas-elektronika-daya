@@ -1,51 +1,104 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>IoT Dashboard Simulasi</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8">
+  <title>Dashboard Realtime</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial;
+      background: #f0f0f0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .display {
+      font-size: 40px;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
+    /* Gauge styling */
+    #gauge {
+      width: 300px;
+      height: 150px;
+      background: #ddd;
+      border-radius: 150px 150px 0 0;
+      position: relative;
+      margin: auto;
+      overflow: hidden;
+    }
+
+    #needle {
+      width: 6px;
+      height: 120px;
+      background: red;
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform-origin: bottom;
+    }
+  </style>
 </head>
 <body>
 
-<h2>Grafik Simulasi IoT</h2>
-<canvas id="myChart"></canvas>
+<h1>Dashboard Realtime</h1>
+
+<div class="display" id="valueDisplay">0</div>
+
+<!-- Gauge -->
+<div id="gauge">
+  <div id="needle"></div>
+</div>
+
+<br><br>
+
+<canvas id="chart" width="400" height="200"></canvas>
 
 <script>
-async function loadData() {
-    const url = "https://raw.githubusercontent.com/apiwWww/tugas-uas-elektronika-daya/refs/heads/main/data_simulasi.csv";
-    const res = await fetch(url);
-    const data = await res.text();
+  let ctx = document.getElementById('chart').getContext('2d');
 
-    const rows = data.split("\n").slice(1);
-    
-    let time = [];
-    let voltage = [];
-    let current = [];
-    let power = [];
+  let chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Data Realtime',
+        data: [],
+        borderWidth: 2
+      }]
+    },
+    options: {
+      animation: false,
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
 
-    rows.forEach(row => {
-        const cols = row.split(",");
-        time.push(cols[0]);
-        voltage.push(parseFloat(cols[1]));
-        current.push(parseFloat(cols[2]));
-        power.push(parseFloat(cols[3]));
-    });
+  function update() {
+    // generate angka random
+    let value = Math.floor(Math.random() * 100);
 
-    return { time, voltage, current, power };
-}
+    // update display
+    document.getElementById("valueDisplay").innerText = value;
 
-loadData().then(d => {
-    new Chart(document.getElementById("myChart"), {
-        type: 'line',
-        data: {
-            labels: d.time,
-            datasets: [
-                { label: "Voltage", data: d.voltage, borderWidth: 2 },
-                { label: "Current", data: d.current, borderWidth: 2 },
-                { label: "Power", data: d.power, borderWidth: 2 }
-            ]
-        }
-    });
-});
+    // update gauge (max 100 → 180 derajat)
+    let deg = (value / 100) * 180;
+    document.getElementById("needle").style.transform = `rotate(${deg}deg)`;
+
+    // update chart
+    if (chart.data.labels.length > 30) {
+      chart.data.labels.shift();
+      chart.data.datasets[0].data.shift();
+    }
+
+    chart.data.labels.push('');
+    chart.data.datasets[0].data.push(value);
+    chart.update();
+  }
+
+  setInterval(update, 1000);
 </script>
 
 </body>
