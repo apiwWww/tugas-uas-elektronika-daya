@@ -66,7 +66,7 @@
 
 <!-- ===================== PARAMETER 2 ====================== -->
 <div class="card">
-  <h2>Arus (Ampere) </h2>
+  <h2>Arus (Ampere)</h2>
 
   <div class="gauge">
       <div id="needle2" class="needle"></div>
@@ -76,7 +76,7 @@
   <canvas id="chart2" width="350" height="150"></canvas>
 </div>
 
-<!-- ===================== PARAMETER 3 (Opsional) ====================== -->
+<!-- ===================== PARAMETER 3 ====================== -->
 <div class="card">
   <h2>Daya (Watt)</h2>
 
@@ -96,17 +96,47 @@ const CSV_URL = "https://raw.githubusercontent.com/apiwWww/tugas-uas-elektronika
 // ====================== SETUP CHART ======================
 const chart1 = new Chart(document.getElementById("chart1"), {
   type: 'line',
-  data: { labels: [], datasets: [{ label: 'Voltage', data: [] }] }
+  data: { 
+    labels: [],
+    datasets: [{
+      label: 'Voltage',
+      data: [],
+      borderColor: 'blue',
+      backgroundColor: 'rgba(0,123,255,0.2)',
+      pointRadius: 0,
+      tension: 0.3
+    }]
+  }
 });
 
 const chart2 = new Chart(document.getElementById("chart2"), {
   type: 'line',
-  data: { labels: [], datasets: [{ label: 'Current', data: [] }] }
+  data: { 
+    labels: [],
+    datasets: [{
+      label: 'Current',
+      data: [],
+      borderColor: 'green',
+      backgroundColor: 'rgba(0,255,0,0.2)',
+      pointRadius: 0,
+      tension: 0.3
+    }]
+  }
 });
 
 const chart3 = new Chart(document.getElementById("chart3"), {
   type: 'line',
-  data: { labels: [], datasets: [{ label: 'Power', data: [] }] }
+  data: { 
+    labels: [],
+    datasets: [{
+      label: 'Power',
+      data: [],
+      borderColor: 'purple',
+      backgroundColor: 'rgba(128,0,128,0.2)',
+      pointRadius: 0,
+      tension: 0.3
+    }]
+  }
 });
 
 // ====================== CSV LOADER ======================
@@ -116,7 +146,6 @@ let index = 0;
 async function loadCSV() {
   const res = await fetch(CSV_URL);
   const text = await res.text();
-
   const rows = text.trim().split("\n").map(r => r.split(","));
   dataRows = rows.slice(1); // skip header
 }
@@ -146,31 +175,37 @@ function updateStep() {
   document.getElementById("val3").textContent = param3.toFixed(2);
 
   // ================= GRAFIK ==================
-  chart1.data.labels.push(time);
-  chart1.data.datasets[0].data.push(param1);
-  chart1.update();
-
-  chart2.data.labels.push(time);
-  chart2.data.datasets[0].data.push(param2);
-  chart2.update();
-
-  chart3.data.labels.push(time);
-  chart3.data.datasets[0].data.push(param3);
-  chart3.update();
+  addData(chart1, time, param1);
+  addData(chart2, time, param2);
+  addData(chart3, time, param3);
 
   index++; // maju baris berikutnya
 }
 
+// ====================== LIMIT DATA & PUSH ======================
+function addData(chart, label, value) {
+  chart.data.labels.push(label);
+  chart.data.datasets[0].data.push(value);
+
+  // batasi maksimum 50 data
+  if (chart.data.labels.length > 50) {
+    chart.data.labels.shift();
+    chart.data.datasets[0].data.shift();
+  }
+
+  chart.update();
+}
+
 // ====================== GAUGE ROTATION ======================
 function updateGauge(id, value) {
-  const deg = (value / 300) * 180 - 90; // skala boleh kamu sesuaikan
+  const deg = (value / 300) * 180 - 90;
   document.getElementById(id).style.transform = `rotate(${deg}deg)`;
 }
 
 // ====================== START ======================
 loadCSV().then(() => {
-  updateStep();               // tampilkan baris pertama
-  setInterval(updateStep, 1000); // update tiap detik
+  updateStep();               
+  setInterval(updateStep, 1000);
 });
 
 </script>
