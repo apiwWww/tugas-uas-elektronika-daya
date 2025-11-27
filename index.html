@@ -1,222 +1,125 @@
-<!doctype html>
-<html lang="id">
+<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>CSV Realtime Dashboard</title>
-  <!-- Chart.js -->
+  <meta charset="UTF-8">
+  <title>Dashboard Realtime CSV</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    :root{--card-bg:#fff;--bg:#f4f6f8;--accent:#0f62fe}
-    body{font-family:Inter, system-ui, Arial; background:var(--bg); margin:0;padding:18px;color:#111}
-    header{display:flex;align-items:center;gap:12px;margin-bottom:18px}
-    h1{margin:0;font-size:20px}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
-    .card{background:var(--card-bg);padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(16,24,40,0.06)}
-    .card .title{font-weight:600;margin-bottom:8px}
-    .gauge-wrap{display:flex;gap:12px;align-items:center}
-    .gauge{width:120px;height:120px}
-    .number{font-size:24px;font-weight:700}
-    .small{font-size:12px;color:#666}
-    .chart-container{height:160px}
-    .controls{display:flex;gap:8px;align-items:center}
-    .muted{color:#666;font-size:13px}
-    footer{margin-top:14px;color:#666;font-size:13px}
-    label{font-size:13px}
-    input[type=text]{padding:6px 8px;border-radius:6px;border:1px solid #ddd;width:100%}
-    .row{display:flex;gap:8px;align-items:center}
+    body { font-family: Arial; background: #f0f0f0; padding: 20px; text-align: center; }
+    .card {
+      background: white; padding: 20px; margin: 15px; border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1); display: inline-block;
+    }
+    .gauge {
+      width: 150px; height: 150px; border-radius: 50%;
+      border: 10px solid #ddd; position: relative; margin: auto;
+    }
+    .needle {
+      width: 4px; height: 60px; background: red; position: absolute;
+      top: 20px; left: 50%; transform-origin: bottom;
+    }
+    .value { font-size: 22px; margin-top: 10px; font-weight: bold; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Realtime CSV Dashboard</h1>
-    <div class="muted">(Ganti RAW_CSV_URL di atas skrip atau masukkan link di input)</div>
-  </header>
 
-  <div class="card" style="margin-bottom:12px;">
-    <div style="display:flex;gap:8px;align-items:center;">
-      <div style="flex:1">
-        <label for="csvUrl">Raw CSV URL (GitHub raw) — contoh: https://raw.githubusercontent.com/yourname/repo/branch/file.csv</label>
-        <input id="csvUrl" type="text" placeholder="Masukkan link raw CSV di sini" />
-      </div>
-      <div style="width:150px">
-        <label>&nbsp;</label>
-        <div class="row"><button id="btnApply">Apply</button><div id="status" class="small" style="margin-left:8px"></div></div>
-      </div>
+<h1>Dashboard Realtime dari CSV GitHub</h1>
+<p>Update otomatis setiap 5 detik</p>
+
+<hr>
+
+<!-- ===================== PARAMETER 1 ====================== -->
+<div class="card">
+    <h2>Parameter 1 (Example: Suhu)</h2>
+
+    <div class="gauge">
+        <div id="needle1" class="needle"></div>
     </div>
-  </div>
+    <div id="val1" class="value">--</div>
 
-  <div id="dashboard" class="grid">
-    <!-- cards akan dibuat lewat JS -->
-  </div>
+    <canvas id="chart1" width="350" height="150"></canvas>
+</div>
 
-  <footer>
-    Auto-refresh tiap 1 detik. File CSV diasumsikan berformat: <code>time,voltage,current,power</code> dan setiap baris timestamp ISO atau format yang dapat di-parse.
-  </footer>
+<!-- ===================== PARAMETER 2 ====================== -->
+<div class="card">
+    <h2>Parameter 2 (Example: Kelembapan)</h2>
 
+    <div class="gauge">
+        <div id="needle2" class="needle"></div>
+    </div>
+    <div id="val2" class="value">--</div>
+
+    <canvas id="chart2" width="350" height="150"></canvas>
+</div>
+
+<!-- ===================== SCRIPT ====================== -->
 <script>
-// --------- CONFIG ---------
-// Ganti ini jika mau hardcode. Jika kosong, masukkan link di input di atas.
-let RAW_CSV_URL = "https://raw.githubusercontent.com/apiwWww/tugas-uas-elektronika-daya/refs/heads/main/data_simulasi%20(2).csv";
-const REFRESH_INTERVAL_MS = 1000; // tiap 1 detik
-// --------------------------
 
-const dashboard = document.getElementById('dashboard');
-const csvInput = document.getElementById('csvUrl');
-const btnApply = document.getElementById('btnApply');
-const status = document.getElementById('status');
+const CSV_URL = "https://raw.githubusercontent.com/apiwWww/tugas-uas-elektronika-daya/refs/heads/main/data_simulasi%20(2).csv";  
+// contoh:
+// https://raw.githubusercontent.com/username/repo/main/data.csv
 
-// contoh parameter yang kita tampilkan (sesuaikan dengan header CSV kamu)
-const PARAMETERS = [
-  { key: 'voltage', label: 'Voltage (V)', max: 300 },
-  { key: 'current', label: 'Current (A)', max: 10 },
-  { key: 'power',   label: 'Power (W)',   max: 500 }
-];
 
-let charts = {};
-let gauges = {};
-let numbers = {};
-let timers = { fetchTimer: null };
+// --- chart setup ---
+const ctx1 = document.getElementById('chart1').getContext('2d');
+const ctx2 = document.getElementById('chart2').getContext('2d');
 
-function createCard(param){
-  const id = param.key;
-  const card = document.createElement('div'); card.className='card';
-  card.innerHTML = `
-    <div class="title">${param.label}</div>
-    <div class="gauge-wrap">
-      <canvas id="gauge-${id}" class="gauge"></canvas>
-      <div>
-        <div class="number" id="num-${id}">—</div>
-        <div class="small">Latest value</div>
-      </div>
-    </div>
-    <div class="chart-container" style="margin-top:10px">
-      <canvas id="chart-${id}"></canvas>
-    </div>
-  `;
-  dashboard.appendChild(card);
-
-  // buat gauge (doughnut yang menunjukkan proporsi terhadap max)
-  const gaugeCtx = document.getElementById(`gauge-${id}`).getContext('2d');
-  const g = new Chart(gaugeCtx, {
-    type: 'doughnut',
-    data: {
-      labels: ['value','remaining'],
-      datasets:[{ data: [0, param.max], backgroundColor: ['rgba(15,98,254,0.9)','rgba(0,0,0,0.08)'], hoverOffset:0 }]
-    },
-    options: {
-      rotation: -1.2 * Math.PI,
-      circumference: 1.2 * Math.PI,
-      cutout: '70%',
-      plugins:{legend:{display:false}, tooltip:{enabled:false}}
-    }
-  });
-  gauges[id]=g;
-
-  // number display
-  numbers[id]=document.getElementById(`num-${id}`);
-
-  // line chart
-  const chartCtx = document.getElementById(`chart-${id}`).getContext('2d');
-  const line = new Chart(chartCtx, {
+const chart1 = new Chart(ctx1, {
     type: 'line',
-    data: { labels: [], datasets:[{ label: param.label, data: [], fill:false, tension:0.25, pointRadius:0 }]},
-    options: {
-      animation:false,
-      responsive:true,
-      scales:{ x:{ display:false }, y:{ beginAtZero:true } },
-      plugins:{ legend:{ display:false }, tooltip:{ mode:'index', intersect:false } }
-    }
-  });
-  charts[id]=line;
-}
-
-// buat semua card
-PARAMETERS.forEach(createCard);
-
-function parseCSV(text){
-  // parsing sederhana CSV: asumsikan header ada
-  const lines = text.trim().split(/\r?\n/).filter(Boolean);
-  if(lines.length<2) return [];
-  const header = lines[0].split(',').map(h=>h.trim());
-  const rows = lines.slice(1).map(line=>{
-    const cols = line.split(',').map(c=>c.trim());
-    const obj = {};
-    header.forEach((h,i)=> obj[h]=cols[i]);
-    return obj;
-  });
-  return { header, rows };
-}
-
-async function fetchAndUpdate(){
-  const url = RAW_CSV_URL || csvInput.value.trim();
-  if(!url) { status.textContent = 'No URL'; return; }
-  try{
-    status.textContent = 'Fetching...';
-    const resp = await fetch(url + (url.includes('?') ? '&' : '?') + 'cachebust=' + Date.now());
-    if(!resp.ok) throw new Error(resp.status + ' ' + resp.statusText);
-    const txt = await resp.text();
-    const { header, rows } = parseCSV(txt);
-    if(!rows || rows.length===0) { status.textContent='Empty CSV'; return; }
-
-    // ambil beberapa titik terakhir (misal 60) untuk grafik
-    const lastN = 60;
-    const slice = rows.slice(-lastN);
-    const labels = slice.map(r=> r[header[0]] ); // kolom waktu pertama sebagai label
-
-    PARAMETERS.forEach(p=>{
-      const key = p.key;
-      const values = slice.map(r=> {
-        const v = parseFloat(r[key]);
-        return Number.isFinite(v) ? v : NaN;
-      });
-      const lastVal = values[values.length-1];
-
-      // update number
-      numbers[key].textContent = Number.isFinite(lastVal) ? lastVal.toFixed(3) : '—';
-
-      // update gauge dataset
-      const g = gauges[key];
-      if(g){
-        const v = Number.isFinite(lastVal) ? Math.max(0, Math.min(p.max, lastVal)) : 0;
-        g.data.datasets[0].data[0] = v;
-        g.data.datasets[0].data[1] = Math.max(0, p.max - v);
-        g.update();
-      }
-
-      // update line chart
-      const c = charts[key];
-      if(c){
-        c.data.labels = labels;
-        c.data.datasets[0].data = values.map(v=> Number.isFinite(v) ? v : null);
-        // set suggestedMax to parameter max for nicer scale
-        if(c.options.scales && c.options.scales.y) c.options.scales.y.suggestedMax = p.max;
-        c.update();
-      }
-    });
-
-    status.textContent = 'OK — ' + new Date().toLocaleTimeString();
-  }catch(err){
-    status.textContent = 'Error: ' + err.message;
-    console.error(err);
-  }
-}
-
-btnApply.addEventListener('click', ()=>{
-  RAW_CSV_URL = csvInput.value.trim();
-  if(!RAW_CSV_URL) { status.textContent = 'Masukkan URL'; return; }
-  // restart timer
-  if(timers.fetchTimer) clearInterval(timers.fetchTimer);
-  fetchAndUpdate();
-  timers.fetchTimer = setInterval(fetchAndUpdate, REFRESH_INTERVAL_MS);
+    data: { labels: [], datasets: [{ label: 'Parameter 1', data: [] }] },
+    options: { responsive: true }
 });
 
-// jika RAW_CSV_URL diset di variabel, isi input otomatis dan mulai
-if(RAW_CSV_URL){ csvInput.value = RAW_CSV_URL; btnApply.click(); }
+const chart2 = new Chart(ctx2, {
+    type: 'line',
+    data: { labels: [], datasets: [{ label: 'Parameter 2', data: [] }] },
+    options: { responsive: true }
+});
 
-// autostart if user pasted into input and presses Enter
-csvInput.addEventListener('keyup', (e)=>{ if(e.key==='Enter') btnApply.click(); });
+
+// --- fungsi baca csv ---
+async function loadCSV() {
+    const res = await fetch(CSV_URL);
+    const text = await res.text();
+    const rows = text.trim().split("\n").map(r => r.split(","));
+
+    const header = rows[0];  
+    const data = rows.slice(1);
+
+    const last = data[data.length - 1];
+
+    const time = last[0];
+    const param1 = parseFloat(last[1]);
+    const param2 = parseFloat(last[2]);
+
+    updateGauge("needle1", param1);
+    updateGauge("needle2", param2);
+
+    document.getElementById("val1").textContent = param1;
+    document.getElementById("val2").textContent = param2;
+
+    chart1.data.labels.push(time);
+    chart1.data.datasets[0].data.push(param1);
+    chart1.update();
+
+    chart2.data.labels.push(time);
+    chart2.data.datasets[0].data.push(param2);
+    chart2.update();
+}
+
+
+// --- fungsi rotasi gauge ---
+function updateGauge(id, value) {
+    const deg = (value / 100) * 180 - 90;   // skala 0–100 → 180 derajat
+    document.getElementById(id).style.transform = `rotate(${deg}deg)`;
+}
+
+
+// auto update tiap 5 detik
+loadCSV();
+setInterval(loadCSV, 5000);
 
 </script>
+
 </body>
 </html>
