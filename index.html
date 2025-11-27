@@ -1,72 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Realtime CSV</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #f0f0f0;
+      padding: 20px;
+      text-align: center;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      margin: 15px;
+      border-radius: 10px;
+      display: inline-block;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 400px;
+    }
+    .gauge {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      border: 10px solid #ddd;
+      position: relative;
+      margin: auto;
+    }
+    .needle {
+      width: 4px;
+      height: 60px;
+      background: red;
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform-origin: bottom;
+    }
+    .value {
+      font-size: 22px;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Dashboard Realtime CSV GitHub</h1>
+<p>Data bergerak baris demi baris (1 detik per baris)</p>
+<hr>
+
+<!-- ===================== PARAMETER 1 ====================== -->
+<div class="card">
+  <h2>Parameter 1 (Voltage)</h2>
+  
+  <div class="gauge">
+      <div id="needle1" class="needle"></div>
+  </div>
+  <div id="val1" class="value">--</div>
+
+  <canvas id="chart1" width="350" height="150"></canvas>
+</div>
+
+<!-- ===================== PARAMETER 2 ====================== -->
+<div class="card">
+  <h2>Parameter 2 (Current)</h2>
+
+  <div class="gauge">
+      <div id="needle2" class="needle"></div>
+  </div>
+  <div id="val2" class="value">--</div>
+  
+  <canvas id="chart2" width="350" height="150"></canvas>
+</div>
+
+<!-- ===================== PARAMETER 3 (Opsional) ====================== -->
+<div class="card">
+  <h2>Parameter 3 (Power)</h2>
+
+  <div class="gauge">
+      <div id="needle3" class="needle"></div>
+  </div>
+  <div id="val3" class="value">--</div>
+  
+  <canvas id="chart3" width="350" height="150"></canvas>
+</div>
+
 <script>
 
+// ====================== LINK CSV ======================
 const CSV_URL = "https://raw.githubusercontent.com/apiwWww/tugas-uas-elektronika-daya/refs/heads/main/data_simulasi%20(2).csv";
 
-// chart setup
-const ctx1 = document.getElementById('chart1').getContext('2d');
-const ctx2 = document.getElementById('chart2').getContext('2d');
-
-const chart1 = new Chart(ctx1, {
-    type: 'line',
-    data: { labels: [], datasets: [{ label: 'Parameter 1', data: [] }] },
-    options: { responsive: true }
+// ====================== SETUP CHART ======================
+const chart1 = new Chart(document.getElementById("chart1"), {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'Voltage', data: [] }] }
 });
 
-const chart2 = new Chart(ctx2, {
-    type: 'line',
-    data: { labels: [], datasets: [{ label: 'Parameter 2', data: [] }] },
-    options: { responsive: true }
+const chart2 = new Chart(document.getElementById("chart2"), {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'Current', data: [] }] }
 });
 
+const chart3 = new Chart(document.getElementById("chart3"), {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'Power', data: [] }] }
+});
+
+// ====================== CSV LOADER ======================
 let dataRows = [];
-let index = 0; // <-- ini penting
+let index = 0;
 
-async function loadAllCSV() {
-    const res = await fetch(CSV_URL);
-    const text = await res.text();
-    const rows = text.trim().split("\n").map(r => r.split(","));
+async function loadCSV() {
+  const res = await fetch(CSV_URL);
+  const text = await res.text();
 
-    dataRows = rows.slice(1); // buang header
+  const rows = text.trim().split("\n").map(r => r.split(","));
+  dataRows = rows.slice(1); // skip header
 }
 
+// ====================== UPDATE PER BARIS ======================
 function updateStep() {
 
-    if (index >= dataRows.length) {
-        console.log("DATA SUDAH HABIS");
-        return;
-    }
+  if (index >= dataRows.length) {
+    console.log("SEMUA DATA SUDAH HABIS");
+    return;
+  }
 
-    const row = dataRows[index];
-    const time = row[0];
-    const param1 = parseFloat(row[1]);
-    const param2 = parseFloat(row[2]);
+  const row = dataRows[index];
 
-    updateGauge("needle1", param1);
-    updateGauge("needle2", param2);
+  const time   = row[0];
+  const param1 = parseFloat(row[1]);
+  const param2 = parseFloat(row[2]);
+  const param3 = parseFloat(row[3]);
 
-    document.getElementById("val1").textContent = param1;
-    document.getElementById("val2").textContent = param2;
+  // ================= GAUGE ==================
+  updateGauge("needle1", param1);
+  updateGauge("needle2", param2);
+  updateGauge("needle3", param3);
 
-    chart1.data.labels.push(time);
-    chart1.data.datasets[0].data.push(param1);
-    chart1.update();
+  document.getElementById("val1").textContent = param1.toFixed(2);
+  document.getElementById("val2").textContent = param2.toFixed(2);
+  document.getElementById("val3").textContent = param3.toFixed(2);
 
-    chart2.data.labels.push(time);
-    chart2.data.datasets[0].data.push(param2);
-    chart2.update();
+  // ================= GRAFIK ==================
+  chart1.data.labels.push(time);
+  chart1.data.datasets[0].data.push(param1);
+  chart1.update();
 
-    index++; // <-- maju ke baris berikutnya
+  chart2.data.labels.push(time);
+  chart2.data.datasets[0].data.push(param2);
+  chart2.update();
+
+  chart3.data.labels.push(time);
+  chart3.data.datasets[0].data.push(param3);
+  chart3.update();
+
+  index++; // maju baris berikutnya
 }
 
+// ====================== GAUGE ROTATION ======================
 function updateGauge(id, value) {
-    const deg = (value / 100) * 180 - 90;
-    document.getElementById(id).style.transform = `rotate(${deg}deg)`;
+  const deg = (value / 300) * 180 - 90; // skala boleh kamu sesuaikan
+  document.getElementById(id).style.transform = `rotate(${deg}deg)`;
 }
 
-// START
-loadAllCSV().then(() => {
-    updateStep(); // tampilkan baris pertama langsung
-    setInterval(updateStep, 1000); // update tiap 1 detik
+// ====================== START ======================
+loadCSV().then(() => {
+  updateStep();               // tampilkan baris pertama
+  setInterval(updateStep, 1000); // update tiap detik
 });
 
 </script>
+
+</body>
+</html>
