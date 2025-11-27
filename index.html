@@ -48,13 +48,13 @@
 </head>
 <body>
 
-<h1>Dashboard Monitoring data</h1>
-<p>KELOMPOK 1 </p>
+<h1>Dashboard Realtime CSV GitHub</h1>
+<p>Data bergerak baris demi baris (1 detik per baris)</p>
 <hr>
 
 <!-- ===================== PARAMETER 1 ====================== -->
 <div class="card">
-  <h2>VOLTASE</h2>
+  <h2>Parameter 1 (Voltage)</h2>
   
   <div class="gauge">
       <div id="needle1" class="needle"></div>
@@ -66,7 +66,7 @@
 
 <!-- ===================== PARAMETER 2 ====================== -->
 <div class="card">
-  <h2>ARUS</h2>
+  <h2>Parameter 2 (Current)</h2>
 
   <div class="gauge">
       <div id="needle2" class="needle"></div>
@@ -76,9 +76,9 @@
   <canvas id="chart2" width="350" height="150"></canvas>
 </div>
 
-<!-- ===================== PARAMETER 3 ====================== -->
+<!-- ===================== PARAMETER 3 (Opsional) ====================== -->
 <div class="card">
-  <h2>DAYA</h2>
+  <h2>Parameter 3 (Power)</h2>
 
   <div class="gauge">
       <div id="needle3" class="needle"></div>
@@ -145,36 +145,17 @@ function updateStep() {
   document.getElementById("val2").textContent = param2.toFixed(2);
   document.getElementById("val3").textContent = param3.toFixed(2);
 
-  // ================== GRAPH (LIMIT 5 DATA) ===================
-  
-  // ---- Chart 1 ----
+  // ================= GRAFIK ==================
   chart1.data.labels.push(time);
   chart1.data.datasets[0].data.push(param1);
-
-  if (chart1.data.labels.length > 5) {
-      chart1.data.labels.shift();
-      chart1.data.datasets[0].data.shift();
-  }
   chart1.update();
 
-  // ---- Chart 2 ----
   chart2.data.labels.push(time);
   chart2.data.datasets[0].data.push(param2);
-
-  if (chart2.data.labels.length > 5) {
-      chart2.data.labels.shift();
-      chart2.data.datasets[0].data.shift();
-  }
   chart2.update();
 
-  // ---- Chart 3 ----
   chart3.data.labels.push(time);
   chart3.data.datasets[0].data.push(param3);
-
-  if (chart3.data.labels.length > 5) {
-      chart3.data.labels.shift();
-      chart3.data.datasets[0].data.shift();
-  }
   chart3.update();
 
   index++; // maju baris berikutnya
@@ -182,14 +163,14 @@ function updateStep() {
 
 // ====================== GAUGE ROTATION ======================
 function updateGauge(id, value) {
-  const deg = (value / 300) * 180 - 90;
+  const deg = (value / 300) * 180 - 90; // skala boleh kamu sesuaikan
   document.getElementById(id).style.transform = `rotate(${deg}deg)`;
 }
 
 // ====================== START ======================
 loadCSV().then(() => {
-  updateStep();
-  setInterval(updateStep, 1000);
+  updateStep();               // tampilkan baris pertama
+  setInterval(updateStep, 1000); // update tiap detik
 });
 
 </script>
