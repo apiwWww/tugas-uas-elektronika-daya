@@ -28,9 +28,9 @@
 
 <hr>
 
-<!-- ===================== PARAMETER 1 ====================== -->
+<!-- ===================== VOLTAGE ====================== -->
 <div class="card">
-    <h2>Parameter 1 (Example: Suhu)</h2>
+    <h2>Voltage (V)</h2>
 
     <div class="gauge">
         <div id="needle1" class="needle"></div>
@@ -40,9 +40,9 @@
     <canvas id="chart1" width="350" height="150"></canvas>
 </div>
 
-<!-- ===================== PARAMETER 2 ====================== -->
+<!-- ===================== CURRENT ====================== -->
 <div class="card">
-    <h2>Parameter 2 (Example: Kelembapan)</h2>
+    <h2>Current (A)</h2>
 
     <div class="gauge">
         <div id="needle2" class="needle"></div>
@@ -52,70 +52,62 @@
     <canvas id="chart2" width="350" height="150"></canvas>
 </div>
 
-<!-- ===================== SCRIPT ====================== -->
 <script>
 
-const CSV_URL = "https://raw.githubusercontent.com/apiwWww/tugas-uas-elektronika-daya/refs/heads/main/data_simulasi.csv";  
-// contoh:
-// https://raw.githubusercontent.com/username/repo/main/data.csv
+const CSV_URL = "https://raw.githubusercontent.com/apiwWww/tugas-uas-elektronika-daya/refs/heads/main/data_simulasi.csv";
 
-
-// --- chart setup ---
 const ctx1 = document.getElementById('chart1').getContext('2d');
 const ctx2 = document.getElementById('chart2').getContext('2d');
 
 const chart1 = new Chart(ctx1, {
     type: 'line',
-    data: { labels: [], datasets: [{ label: 'Parameter 1', data: [] }] },
+    data: { labels: [], datasets: [{ label: 'Voltage (V)', data: [] }] },
     options: { responsive: true }
 });
 
 const chart2 = new Chart(ctx2, {
     type: 'line',
-    data: { labels: [], datasets: [{ label: 'Parameter 2', data: [] }] },
+    data: { labels: [], datasets: [{ label: 'Current (A)', data: [] }] },
     options: { responsive: true }
 });
 
 
-// --- fungsi baca csv ---
 async function loadCSV() {
     const res = await fetch(CSV_URL);
     const text = await res.text();
-    const rows = text.trim().split("\n").map(r => r.split(","));
 
-    const header = rows[0];  
-    const data = rows.slice(1);
+    const rows = text.trim().split("\n").map(r => r.split(","));
+    const data = rows.slice(1); // skip header
 
     const last = data[data.length - 1];
 
-    const time = last[0];
-    const param1 = parseFloat(last[1]);
-    const param2 = parseFloat(last[2]);
+    const time = last[0];            // kolom time
+    const voltage = parseFloat(last[1]); // kolom voltage
+    const current = parseFloat(last[2]); // kolom current
+    // const power = parseFloat(last[3]); // kalau mau tambah gauge ke-3
 
-    updateGauge("needle1", param1);
-    updateGauge("needle2", param2);
+    // update gauge
+    updateGauge("needle1", voltage);
+    updateGauge("needle2", current);
 
-    document.getElementById("val1").textContent = param1;
-    document.getElementById("val2").textContent = param2;
+    document.getElementById("val1").textContent = voltage;
+    document.getElementById("val2").textContent = current;
 
+    // update grafik
     chart1.data.labels.push(time);
-    chart1.data.datasets[0].data.push(param1);
+    chart1.data.datasets[0].data.push(voltage);
     chart1.update();
 
     chart2.data.labels.push(time);
-    chart2.data.datasets[0].data.push(param2);
+    chart2.data.datasets[0].data.push(current);
     chart2.update();
 }
 
-
-// --- fungsi rotasi gauge ---
 function updateGauge(id, value) {
-    const deg = (value / 100) * 180 - 90;   // skala 0–100 → 180 derajat
+    const deg = (value / 100) * 180 - 90;
     document.getElementById(id).style.transform = `rotate(${deg}deg)`;
 }
 
-
-// auto update tiap 5 detik
 loadCSV();
 setInterval(loadCSV, 5000);
 
