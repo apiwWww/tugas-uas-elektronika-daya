@@ -2,42 +2,123 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard Realtime GitHub</title>
+  <title>Dashboard Realtime CSV</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial; background: #f0f0f0; padding: 20px; text-align: center; }
+    .card {
+      background: white; padding: 20px; margin: 15px; border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1); display: inline-block;
+    }
+    .gauge {
+      width: 150px; height: 150px; border-radius: 50%;
+      border: 10px solid #ddd; position: relative; margin: auto;
+    }
+    .needle {
+      width: 4px; height: 60px; background: red; position: absolute;
+      top: 20px; left: 50%; transform-origin: bottom;
+    }
+    .value { font-size: 22px; margin-top: 10px; font-weight: bold; }
+  </style>
 </head>
 <body>
-<h1>Dashboard Realtime</h1>
 
-<div>
-  <h2>Suhu: <span id="suhu">--</span> °C</h2>
-  <canvas id="chart" width="400" height="150"></canvas>
+<h1>Dashboard Realtime dari CSV GitHub</h1>
+<p>Update otomatis setiap 5 detik</p>
+
+<hr>
+
+<!-- ===================== PARAMETER 1 ====================== -->
+<div class="card">
+    <h2>Parameter 1 (Example: Suhu)</h2>
+
+    <div class="gauge">
+        <div id="needle1" class="needle"></div>
+    </div>
+    <div id="val1" class="value">--</div>
+
+    <canvas id="chart1" width="350" height="150"></canvas>
 </div>
 
+<!-- ===================== PARAMETER 2 ====================== -->
+<div class="card">
+    <h2>Parameter 2 (Example: Kelembapan)</h2>
+
+    <div class="gauge">
+        <div id="needle2" class="needle"></div>
+    </div>
+    <div id="val2" class="value">--</div>
+
+    <canvas id="chart2" width="350" height="150"></canvas>
+</div>
+
+<!-- ===================== SCRIPT ====================== -->
 <script>
-const csvUrl = "https://raw.githubusercontent.com/apiwWww/tugas-uas-elektronika-daya/refs/heads/main/data_simulasi.csv"; // ganti!
 
-async function loadCSV() {
-    const res = await fetch(csvUrl + "?t=" + Date.now()); 
-    const text = await res.text();
-    const rows = text.trim().split("\n").slice(1);
-    const last = rows[rows.length - 1].split(",");
+const CSV_URL = "GANTI_LINK_RAW_CSV_DI_SINI";  
+// contoh:
+// https://raw.githubusercontent.com/username/repo/main/data.csv
 
-    document.getElementById("suhu").innerText = last[1];
 
-    // update grafik
-    chart.data.labels.push(last[0]);
-    chart.data.datasets[0].data.push(last[1]);
-    chart.update();
-}
+// --- chart setup ---
+const ctx1 = document.getElementById('chart1').getContext('2d');
+const ctx2 = document.getElementById('chart2').getContext('2d');
 
-const ctx = document.getElementById("chart").getContext("2d");
-const chart = new Chart(ctx, {
-    type: "line",
-    data: { labels: [], datasets: [{ data: [] }] },
+const chart1 = new Chart(ctx1, {
+    type: 'line',
+    data: { labels: [], datasets: [{ label: 'Parameter 1', data: [] }] },
+    options: { responsive: true }
 });
 
-// update tiap 1 detik
-setInterval(loadCSV, 1000);
+const chart2 = new Chart(ctx2, {
+    type: 'line',
+    data: { labels: [], datasets: [{ label: 'Parameter 2', data: [] }] },
+    options: { responsive: true }
+});
+
+
+// --- fungsi baca csv ---
+async function loadCSV() {
+    const res = await fetch(CSV_URL);
+    const text = await res.text();
+    const rows = text.trim().split("\n").map(r => r.split(","));
+
+    const header = rows[0];  
+    const data = rows.slice(1);
+
+    const last = data[data.length - 1];
+
+    const time = last[0];
+    const param1 = parseFloat(last[1]);
+    const param2 = parseFloat(last[2]);
+
+    updateGauge("needle1", param1);
+    updateGauge("needle2", param2);
+
+    document.getElementById("val1").textContent = param1;
+    document.getElementById("val2").textContent = param2;
+
+    chart1.data.labels.push(time);
+    chart1.data.datasets[0].data.push(param1);
+    chart1.update();
+
+    chart2.data.labels.push(time);
+    chart2.data.datasets[0].data.push(param2);
+    chart2.update();
+}
+
+
+// --- fungsi rotasi gauge ---
+function updateGauge(id, value) {
+    const deg = (value / 100) * 180 - 90;   // skala 0–100 → 180 derajat
+    document.getElementById(id).style.transform = `rotate(${deg}deg)`;
+}
+
+
+// auto update tiap 5 detik
+loadCSV();
+setInterval(loadCSV, 5000);
+
 </script>
 
 </body>
