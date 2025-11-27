@@ -76,7 +76,7 @@
   <canvas id="chart2" width="350" height="150"></canvas>
 </div>
 
-<!-- ===================== PARAMETER 3 (Opsional) ====================== -->
+<!-- ===================== PARAMETER 3 ====================== -->
 <div class="card">
   <h2>Parameter 3 (Power)</h2>
 
@@ -96,17 +96,47 @@ const CSV_URL = "https://raw.githubusercontent.com/apiwWww/tugas-uas-elektronika
 // ====================== SETUP CHART ======================
 const chart1 = new Chart(document.getElementById("chart1"), {
   type: 'line',
-  data: { labels: [], datasets: [{ label: 'Voltage', data: [] }] }
+  data: { 
+    labels: [],
+    datasets: [{
+      label: 'Voltage',
+      data: [],
+      borderColor: 'blue',
+      backgroundColor: 'rgba(0,0,255,0.2)',
+      pointRadius: 0,
+      tension: 0.3
+    }]
+  }
 });
 
 const chart2 = new Chart(document.getElementById("chart2"), {
   type: 'line',
-  data: { labels: [], datasets: [{ label: 'Current', data: [] }] }
+  data: { 
+    labels: [],
+    datasets: [{
+      label: 'Current',
+      data: [],
+      borderColor: 'green',
+      backgroundColor: 'rgba(0,255,0,0.2)',
+      pointRadius: 0,
+      tension: 0.3
+    }]
+  }
 });
 
 const chart3 = new Chart(document.getElementById("chart3"), {
   type: 'line',
-  data: { labels: [], datasets: [{ label: 'Power', data: [] }] }
+  data: { 
+    labels: [],
+    datasets: [{
+      label: 'Power',
+      data: [],
+      borderColor: 'red',
+      backgroundColor: 'rgba(255,0,0,0.2)',
+      pointRadius: 0,
+      tension: 0.3
+    }]
+  }
 });
 
 // ====================== CSV LOADER ======================
@@ -163,14 +193,14 @@ function updateStep() {
 
 // ====================== GAUGE ROTATION ======================
 function updateGauge(id, value) {
-  const deg = (value / 300) * 180 - 90; // skala boleh kamu sesuaikan
+  const deg = (value / 300) * 180 - 90; 
   document.getElementById(id).style.transform = `rotate(${deg}deg)`;
 }
 
 // ====================== START ======================
 loadCSV().then(() => {
-  updateStep();               // tampilkan baris pertama
-  setInterval(updateStep, 1000); // update tiap detik
+  updateStep();
+  setInterval(updateStep, 1000);
 });
 
 </script>
