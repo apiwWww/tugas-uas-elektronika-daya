@@ -1,124 +1,88 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Dashboard Realtime CSV</title>
+  <meta charset="UTF-8" />
+  <title>CSV Realtime Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: Arial; background: #f0f0f0; padding: 20px; text-align: center; }
-    .card {
-      background: white; padding: 20px; margin: 15px; border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1); display: inline-block;
-    }
-    .gauge {
-      width: 150px; height: 150px; border-radius: 50%;
-      border: 10px solid #ddd; position: relative; margin: auto;
-    }
-    .needle {
-      width: 4px; height: 60px; background: red; position: absolute;
-      top: 20px; left: 50%; transform-origin: bottom;
-    }
-    .value { font-size: 22px; margin-top: 10px; font-weight: bold; }
+    body { font-family: Arial; background: #f0f0f0; padding: 20px; }
+    .param-box { background: white; padding: 15px; margin: 15px 0; border-radius: 10px; box-shadow: 0 0 8px #ccc; }
+    canvas { width: 100%; max-height: 250px; }
   </style>
 </head>
 <body>
+  <h2>CSV Dashboard Generator</h2>
+  <input id="csvUrl" placeholder="https://raw.githubusercontent.com/apiwWww/tugas-uas-elektronika-daya/refs/heads/main/data_simulasi%20(2).csv" style="width:70%" />
+  <button onclick="loadCSV()">Load</button>
+  <button onclick="toggleAuto()" id="autoBtn">Auto: OFF</button>
 
-<h1>Dashboard Realtime dari CSV GitHub</h1>
-<p>Update otomatis setiap 5 detik</p>
+  <div id="container"></div>
 
-<hr>
-
-<!-- ===================== PARAMETER 1 ====================== -->
-<div class="card">
-    <h2>Parameter 1 (Example: Suhu)</h2>
-
-    <div class="gauge">
-        <div id="needle1" class="needle"></div>
-    </div>
-    <div id="val1" class="value">--</div>
-
-    <canvas id="chart1" width="350" height="150"></canvas>
-</div>
-
-<!-- ===================== PARAMETER 2 ====================== -->
-<div class="card">
-    <h2>Parameter 2 (Example: Kelembapan)</h2>
-
-    <div class="gauge">
-        <div id="needle2" class="needle"></div>
-    </div>
-    <div id="val2" class="value">--</div>
-
-    <canvas id="chart2" width="350" height="150"></canvas>
-</div>
-
-<!-- ===================== SCRIPT ====================== -->
 <script>
+let auto = false;
+let timer = null;
+let charts = {};
 
-const CSV_URL = "https://raw.githubusercontent.com/apiwWww/tugas-uas-elektronika-daya/refs/heads/main/data_simulasi%20(2).csv";  
-// contoh:
-// https://raw.githubusercontent.com/username/repo/main/data.csv
-
-
-// --- chart setup ---
-const ctx1 = document.getElementById('chart1').getContext('2d');
-const ctx2 = document.getElementById('chart2').getContext('2d');
-
-const chart1 = new Chart(ctx1, {
-    type: 'line',
-    data: { labels: [], datasets: [{ label: 'Parameter 1', data: [] }] },
-    options: { responsive: true }
-});
-
-const chart2 = new Chart(ctx2, {
-    type: 'line',
-    data: { labels: [], datasets: [{ label: 'Parameter 2', data: [] }] },
-    options: { responsive: true }
-});
-
-
-// --- fungsi baca csv ---
-async function loadCSV() {
-    const res = await fetch(CSV_URL);
-    const text = await res.text();
-    const rows = text.trim().split("\n").map(r => r.split(","));
-
-    const header = rows[0];  
-    const data = rows.slice(1);
-
-    const last = data[data.length - 1];
-
-    const time = last[0];
-    const param1 = parseFloat(last[1]);
-    const param2 = parseFloat(last[2]);
-
-    updateGauge("needle1", param1);
-    updateGauge("needle2", param2);
-
-    document.getElementById("val1").textContent = param1;
-    document.getElementById("val2").textContent = param2;
-
-    chart1.data.labels.push(time);
-    chart1.data.datasets[0].data.push(param1);
-    chart1.update();
-
-    chart2.data.labels.push(time);
-    chart2.data.datasets[0].data.push(param2);
-    chart2.update();
+function toggleAuto(){
+  auto = !auto;
+  document.getElementById("autoBtn").innerText = "Auto: " + (auto?"ON":"OFF");
+  if(auto){ timer = setInterval(loadCSV, 1000); }
+  else{ clearInterval(timer); }
 }
 
+async function loadCSV(){
+  const url = document.getElementById("csvUrl").value + "?cache="+Date.now();
+  const res = await fetch(url);
+  const text = await res.text();
+  const rows = text.trim().split("
+").map(r=>r.split(","));
 
-// --- fungsi rotasi gauge ---
-function updateGauge(id, value) {
-    const deg = (value / 100) * 180 - 90;   // skala 0–100 → 180 derajat
-    document.getElementById(id).style.transform = `rotate(${deg}deg)`;
+  const header = rows[0];
+  const data = rows.slice(1);
+
+  const cols = {};
+  header.forEach((h,i)=> cols[h] = data.map(r => r[i]));
+
+  const container = document.getElementById("container");
+  container.innerHTML = "";
+
+  header.forEach((col, i)=>{
+    if(i===0) return;
+    let values = cols[col].map(Number);
+    let last = values[values.length-1];
+
+    let box = document.createElement("div");
+    box.className = "param-box";
+    box.innerHTML = `<h3>${col}</h3>
+      <h1>${last.toFixed(2)}</h1>
+      <canvas id="gauge_${col}"></canvas>
+      <canvas id="chart_${col}"></canvas>`;
+    container.appendChild(box);
+
+    drawGauge("gauge_"+col, last);
+    drawChart("chart_"+col, values);
+  });
 }
 
+function drawGauge(id, val){
+  let ctx = document.getElementById(id).getContext("2d");
+  if(charts[id]) charts[id].destroy();
+  charts[id] = new Chart(ctx, {
+    type: "doughnut",
+    data:{ labels:["Value","Rest"], datasets:[{ data:[val, 300-val] }]},
+    options:{ cutout: "70%", plugins:{ legend:{display:false} } }
+  });
+}
 
-// auto update tiap 5 detik
-loadCSV();
-setInterval(loadCSV, 5000);
-
+function drawChart(id, values){
+  let ctx = document.getElementById(id).getContext("2d");
+  if(charts[id]) charts[id].destroy();
+  charts[id] = new Chart(ctx, {
+    type:"line",
+    data:{ labels: values.map((_,i)=>i), datasets:[{ data: values }]},
+    options:{ responsive:true }
+  });
+}
 </script>
 
 </body>
