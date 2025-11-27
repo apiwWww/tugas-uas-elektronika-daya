@@ -2,167 +2,42 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard Realtime CSV</title>
+  <title>Dashboard Realtime GitHub</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <style>
-    body {
-      font-family: Arial;
-      background: #f0f0f0;
-      padding: 20px;
-      text-align: center;
-    }
-    .card {
-      background: white;
-      padding: 20px;
-      margin: 15px;
-      border-radius: 12px;
-      display: inline-block;
-      box-shadow: 0 3px 12px rgba(0,0,0,0.15);
-      width: 330px;
-    }
-    
-    /* Gauge */
-    .gauge-box {
-      width: 160px;
-      height: 160px;
-      border: 10px solid #ddd;
-      border-radius: 50%;
-      margin: auto;
-      position: relative;
-    }
-    .needle {
-      width: 4px;
-      height: 70px;
-      background: red;
-      position: absolute;
-      top: 15px;
-      left: 50%;
-      transform-origin: bottom;
-      transition: 0.3s ease-out;
-    }
-    .value {
-      font-size: 26px;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-  </style>
 </head>
 <body>
+<h1>Dashboard Realtime</h1>
 
-<h1>Dashboard Realtime CSV GitHub</h1>
-<p>Auto update setiap 5 detik</p>
-<hr>
-
-<!-- PARAMETER 1 -->
-<div class="card">
-  <h2>Suhu</h2>
-  <div class="gauge-box">
-      <div id="needle1" class="needle"></div>
-  </div>
-  <div id="val1" class="value">--</div>
-  <canvas id="chart1" width="350" height="150"></canvas>
-</div>
-
-<!-- PARAMETER 2 -->
-<div class="card">
-  <h2>Kelembapan</h2>
-  <div class="gauge-box">
-      <div id="needle2" class="needle"></div>
-  </div>
-  <div id="val2" class="value">--</div>
-  <canvas id="chart2" width="350" height="150"></canvas>
+<div>
+  <h2>Suhu: <span id="suhu">--</span> °C</h2>
+  <canvas id="chart" width="400" height="150"></canvas>
 </div>
 
 <script>
-
-// =================== GANTI LINK CSV DI SINI ===================
-const CSV_URL = "https://raw.githubusercontent.com/apiwWww/tugas-uas-elektronika-daya/refs/heads/main/data_simulasi.csv";
-// ===============================================================
-
-// Membuat grafik
-function makeChart(label) {
-    return new Chart(document.getElementById(label).getContext("2d"), {
-        type: "line",
-        data: {
-            labels: [],
-            datasets: [{
-                label,
-                data: [],
-                borderWidth: 2,
-                fill: false,
-            }]
-        },
-        options: {
-            responsive: true,
-            animation: false,
-            scales: {
-                x: { display: true },
-                y: { display: true }
-            }
-        }
-    });
-}
-
-const chart1 = makeChart("chart1");
-const chart2 = makeChart("chart2");
+const csvUrl = "https://raw.githubusercontent.com/apiwWww/tugas-uas-elektronika-daya/refs/heads/main/data_simulasi.csv"; // ganti!
 
 async function loadCSV() {
-    try {
-        const res = await fetch(CSV_URL + "?nocache=" + Date.now());
-        const text = await res.text();
+    const res = await fetch(csvUrl + "?t=" + Date.now()); 
+    const text = await res.text();
+    const rows = text.trim().split("\n").slice(1);
+    const last = rows[rows.length - 1].split(",");
 
-        const rows = text.trim().split("\n").map(r => r.split(","));
-        if (rows.length < 2) return;
+    document.getElementById("suhu").innerText = last[1];
 
-        const last = rows[rows.length - 1];
-
-        const time = last[0];
-        const suhu = parseFloat(last[1]);
-        const lembab = parseFloat(last[2]);
-
-        // Display angka
-        document.getElementById("val1").textContent = suhu;
-        document.getElementById("val2").textContent = lembab;
-
-        // Update gauge
-        setGauge("needle1", suhu);
-        setGauge("needle2", lembab);
-
-        // Update grafik
-        pushData(chart1, time, suhu);
-        pushData(chart2, time, lembab);
-
-    } catch (e) {
-        console.log("Error baca CSV:", e);
-    }
-}
-
-// Needle gauge
-function setGauge(id, val) {
-    const deg = (val / 100) * 180 - 90;
-    document.getElementById(id).style.transform = `rotate(${deg}deg)`;
-}
-
-// Menambah data ke grafik
-function pushData(chart, label, value) {
-    chart.data.labels.push(label);
-    chart.data.datasets[0].data.push(value);
-
-    // Batas maksimal titik grafik
-    if (chart.data.labels.length > 50) {
-        chart.data.labels.shift();
-        chart.data.datasets[0].data.shift();
-    }
-
+    // update grafik
+    chart.data.labels.push(last[0]);
+    chart.data.datasets[0].data.push(last[1]);
     chart.update();
 }
 
-// load awal
-loadCSV();
-// update setiap 5 detik
-setInterval(loadCSV, 5000);
+const ctx = document.getElementById("chart").getContext("2d");
+const chart = new Chart(ctx, {
+    type: "line",
+    data: { labels: [], datasets: [{ data: [] }] },
+});
 
+// update tiap 1 detik
+setInterval(loadCSV, 1000);
 </script>
 
 </body>
